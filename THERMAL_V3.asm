@@ -1,0 +1,1188 @@
+;-----------------------.
+; THERMAL CONVERTER     |
+;-----------------------'
+
+;=================================================================================================
+; COMPUTER BASED SISTEM FINAL PROJECT
+; KELOMPOK BINER
+; AHMAD RAFIUL		1706985861
+; ALFIAN FIRMANSYAH	1706985874
+; FAHRI ALAMSYAH	1706985943
+; HILMAN MAULANA	1706985975
+
+; KAMI MENGGUNAKAN BEBERAPA PORT UNTUK INPUT DAN BEBERAPA PORT UNTUK OUTPUT DENGAN RINCIAN SEBAGAI BERIKUT:
+
+; PORT INPUT
+; 1. SIMPLE KEYPAD
+;    MODE1 (DARI SUHU APA) -> PORT 0 BIT 0 1 2 3 ( 4-BIT )
+	; 01 Celcius
+	; 10 Farenheit
+	; 100 Reamur
+	; 1000 Newton
+;    MODE2 (KE SUHU APA)-> PORT 0 BIT 4 5 6 7 ( 4-BIT SATUAN )
+
+; 2. KEYPAD MATRIX
+;     PORT 1 PORT BIT 0 - 7
+
+; 3. LCD 16 X 2
+;     PORT 2 BIT 0 - 2
+;     PORT 1 BIT 0 - 7
+
+; 4. LED MATRIX
+;     PORT 0 BIT 0 - 7
+;     PORT 1 BIT 0 - 7
+
+ORG 00H
+COUNT EQU 60
+
+ACALL CLEAR_LCD		;INISIASI LCD
+
+
+
+;-------------------------------------------------.
+;   INTERFACE                                     |
+;   MENUNGGU INPUT DARI KEYPAD MATRIX ABCD        |
+;   A = DISPLAY JUDUL PROGRAM, LALU MULAI PROGRAM |
+;   B = MENJALANKAN PROGRAM LANGSUNG              |-------------------------------------------------=====
+;   C = DISPLAY LED MATRIX, LALU MULAI PROGRAM    |
+;   D = HALT PROGRAM                              |
+;-------------------------------------------------'
+
+INPUT_ABCD:
+
+CLR A
+
+LOOPS:
+	MOV P1,#11111111B
+	CLR P1.0
+	JB P1.4,LANJUT_1
+
+LANJUT_1:
+	JB P1.5,LANJUT_2
+
+LANJUT_2:
+	JB P1.6,LANJUT_3
+
+LANJUT_3:
+	JB P1.7,LANJUT_4
+	LJMP PILIH_A
+;	MOV A,#3D
+;	ACALL DISPLAY;
+LANJUT_4:
+	SETB P1.0
+	CLR P1.1
+	JB P1.4,LANJUT_5
+
+LANJUT_5:
+	JB P1.5,LANJUT_6
+
+LANJUT_6:
+	JB P1.6,LANJUT_7
+
+LANJUT_7:
+	JB P1.7,LANJUT_8
+	LJMP PILIH_B
+;	MOV A,#7D
+;	ACALL DISPLAY
+
+LOOP_1:
+LJMP LOOPS
+LANJUT_8:
+	SETB P1.1
+	CLR P1.2
+	JB P1.4,LANJUT_9
+
+LANJUT_9:
+	JB P1.5,LANJUT_10
+
+LANJUT_10:
+	JB P1.6,LANJUT_11
+
+LANJUT_11:
+	JB P1.7,LANJUT_12
+	LJMP PILIH_C
+;	MOV A,#11D
+;	ACALL DISPLAY
+LANJUT_12:
+	SETB P1.2
+	CLR P1.3
+	JB P1.4,LANJUT_13
+;	MOV A,#12D
+;	ACALL DISPLAY
+LANJUT_13:
+	JB P1.5,LANJUT_14
+
+	
+LANJUT_14:
+	JB P1.6,LANJUT_15
+;	MOV A,#14D
+;	ACALL DISPLAY
+LANJUT_15:
+	JB P1.7,LOOP_1
+	LJMP PILIH_D
+;	MOV A,#15D
+;	ACALL DISPLAY
+;	
+	LJMP LOOPS
+
+PILIH_A:
+MOV P1, #10000000B
+
+MOV A,#' '
+ACALL DATAWRT
+
+MOV A,#'K'
+ACALL DATAWRT
+
+MOV A,#'O'
+ACALL DATAWRT
+
+MOV A,#'N'
+ACALL DATAWRT
+
+MOV A,#'V'
+ACALL DATAWRT
+
+MOV A,#'E'
+ACALL DATAWRT
+
+MOV A,#'R'
+ACALL DATAWRT
+
+MOV A,#'S'
+ACALL DATAWRT
+
+MOV A,#'I'
+ACALL DATAWRT
+
+MOV A,#' '
+ACALL DATAWRT
+
+MOV A,#'S'
+ACALL DATAWRT
+
+MOV A,#'U'
+ACALL DATAWRT
+
+MOV A,#'H'
+ACALL DATAWRT
+
+MOV A,#'U'
+ACALL DATAWRT
+
+ACALL SUBRUTIN_DELAY
+
+PILIH_B:
+
+
+;---------------------------------------------------.
+; MEMINTA INPUT DARI KEYPAD PORT 0 BIT 0 - 3        |-----------------DARI SUHU APA------------====
+;---------------------------------------------------'
+DARI:
+	MOV R7, #00H
+	CLR A
+	MOV A, P0
+	CPL A
+   	CJNE A, #01B, SKIP             ;CELCIUS
+   	JMP FLAGS
+   	SKIP:
+   	CJNE A, #10B, SKIP1            ;FARENHEIT
+   	JMP FLAGS
+   	SKIP1:
+   	CJNE A, #100B, SKIP2           ;REAMOUR
+   	JMP FLAGS
+   	SKIP2:
+   	CJNE A, #1000B, SKIP3          ;NEWTON
+   	JMP FLAGS
+   	SKIP3:
+	SJMP DARI
+	
+FLAGS:
+	MOV R0, A                      ;SIMPAN BIT SEBAGAI FLAG
+	SJMP KE
+
+
+;---------------------------------------------------.
+; MEMINTA INPUT DARI KEYPAD PORT 0 BIT 4 5 6 7      |------------------KE SUHU APA------------------======
+;---------------------------------------------------'
+
+KE:
+	CLR A
+	JNB P0.4, CELCIUS
+   	JNB P0.5, FARENHEIT
+   	JNB P0.6, REAMUR
+   	JNB P0.7, NEWTON
+	SJMP KE
+
+;---------------------------------------------------.
+; MENGHUBUNGKAN FLAG SUHU                           |------------------DARI DAN KE SUHU APA------------------======
+;---------------------------------------------------'
+
+CELCIUS:			;LABEL INI ARTINYA ADALAH KE SUHU CELCIUS
+	MOV A, R0
+	CJNE A, #01B, NEXT	; DARI SUHU CELCIUS ATAU,
+	JMP CKEC
+	NEXT:
+	CJNE A, #10B, NEXT2	; FARENHEIT ATAU.
+	JMP FKEC
+	NEXT2:
+	CJNE A, #100B, NEXT3    ; REAMOUR ATAU,
+	JMP RKEC
+	NEXT3:
+	JMP NKEC                ; NEWTON.
+
+; DAN SETERUSNYA
+
+FARENHEIT:
+	MOV A, R0
+	CJNE A, #01B, NEXT_
+	JMP CKEF
+	NEXT_:
+	CJNE A, #10B, NEXT_2
+	JMP FKEF
+	NEXT_2:
+	CJNE A, #100B, NEXT_3
+	JMP RKEF
+	NEXT_3:
+	JMP NKEF
+	
+REAMUR:
+	MOV A, R0
+	CJNE A, #01B, NEXT_4
+	JMP CKER
+	NEXT_4:
+	CJNE A, #10B, NEXT_5
+	JMP FKER
+	NEXT_5:
+	CJNE A, #100B, NEXT_6
+	JMP RKER
+	NEXT_6:
+	JMP NKER
+	
+NEWTON:
+	MOV A, R0
+	CJNE A, #01B, NEXT_7
+	JMP CKEN
+	NEXT_7:
+	CJNE A, #10B, NEXT_8
+	JMP FKEN
+	NEXT_8:
+	CJNE A, #100B, NEXT_9
+	JMP RKEN
+	NEXT_9:
+	JMP NKEN
+
+;------------------------------------------------------------------------------------------------------------.
+;---------SUBRUTINE INPUT DARI KEYPAD MATRIX UNTUK INPUT SUHU YANG AKAN DIKONVERSI---------------------------|
+;------------------------------------------------------------------------------------------------------------'
+
+INPUT_KEYPAD:
+
+CLR A
+
+LOOP:
+	MOV P1,#11111111B
+	CLR P1.0
+	JB P1.4,LANJUT1 
+	MOV A, R7
+	MOV B, #1
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT1
+	ACALL SAVE
+	RET
+LANJUT1:
+	JB P1.5,LANJUT2
+	MOV A, R7
+	MOV B, #2
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT2
+	ACALL SAVE
+	RET
+
+LANJUT2:
+	JB P1.6,LANJUT3
+	MOV A, R7
+	MOV B, #3
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT3
+	ACALL SAVE
+	RET
+LANJUT3:
+	JB P1.7,LANJUT4
+;	MOV A,#3D
+;	ACALL DISPLAY;
+LANJUT4:
+	SETB P1.0
+	CLR P1.1
+	JB P1.4,LANJUT5
+	MOV A, R7
+	MOV B, #4
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT5
+	ACALL SAVE
+	RET
+LANJUT5:
+	JB P1.5,LANJUT6
+	MOV A, R7
+	MOV B, #5
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT6
+	ACALL SAVE
+	RET
+LANJUT6:
+	JB P1.6,LANJUT7
+	MOV A, R7
+	MOV B, #6
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT7
+	ACALL SAVE
+	RET
+LANJUT7:
+	JB P1.7,LANJUT8
+;	MOV A,#7D
+;	ACALL DISPLAY
+
+LOOP1:
+LJMP LOOP
+LANJUT8:
+	SETB P1.1
+	CLR P1.2
+	JB P1.4,LANJUT9
+	MOV A, R7
+	MOV B, #7
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT9
+	ACALL SAVE
+	RET
+LANJUT9:
+	JB P1.5,LANJUT10
+	MOV A, R7
+	MOV B, #8
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT10
+	ACALL SAVE
+	RET
+LANJUT10:
+	JB P1.6,LANJUT11
+	MOV A, R7
+	MOV B, #9
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT11
+	ACALL SAVE
+	RET
+LANJUT11:
+	JB P1.7,LANJUT12
+;	MOV A,#11D
+;	ACALL DISPLAY
+LANJUT12:
+	SETB P1.2
+	CLR P1.3
+	JB P1.4,LANJUT13
+;	MOV A,#12D
+;	ACALL DISPLAY
+LANJUT13:
+	JB P1.5,LANJUT14
+	MOV A, R7
+	MOV B, #0
+	ACALL BIT_CHECK
+	MOV A, R7
+	CJNE A, #10H, LANJUT14
+	ACALL SAVE
+	RET
+	
+LANJUT14:
+	JB P1.6,LANJUT15
+;	MOV A,#14D
+;	ACALL DISPLAY
+LANJUT15:
+	JB P1.7,LOOP1
+;	MOV A,#15D
+;	ACALL DISPLAY
+;	
+	LJMP LOOP
+
+BIT_CHECK:
+	CJNE A, #01H, MSB
+	SJMP LSB
+	
+	MSB:
+	MOV R5, B
+	ACALL FLAG_MSB
+	RET
+
+	LSB:
+	MOV R6, B
+	ACALL FLAG_LSB
+	RET
+	
+
+FLAG_MSB:
+	MOV R7, #01H
+	RET
+
+FLAG_LSB:
+	MOV R7, #10H
+	RET
+
+SAVE:
+MOV A, R5
+MOV B, #10
+MUL AB
+ADD A, R6
+RET
+
+	CKEC:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;MOV A, #25 ;INPUT DAN OUTPUT
+		ACALL INPUT_KEYPAD
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+	
+	FKEC:
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;FAHRENHEIT TO CELCIUS   
+		;(TF - 32) * 5/9
+		
+		CLR A
+;		MOV A, #40 ;INPPUTNYA
+		ACALL INPUT_KEYPAD
+		SUBB A, #32
+		MOV B, #2
+		DIV AB
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	RKEC:
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;RE TO C
+		; 5/4 * TR
+		
+		CLR A
+		MOV A, #5 
+		MOV B, #4
+		DIV AB
+;		MOV A, #25 ;INPUTNYA
+		ACALL INPUT_KEYPAD
+		ADD A, B
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	NKEC:
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;NTOC TN * 100/33
+		
+		ACALL INPUT_KEYPAD
+		MOV B, #3
+		MUL AB
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+
+	CKEF:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;CEL TO FARENHEIT
+		; 9/5 * TC + 32
+		
+		CLR A
+		MOV A, #9 ;ASSIGN INPUT SWITCH KE REGISTER A
+		MOV B, #5
+		DIV AB  ; terdapat remainder 4
+		INC A
+		MOV R0, A
+		MOV R1, B
+;		MOV R3, #10 ; INI ANGKA INPUTNYA
+		ACALL INPUT_KEYPAD
+		MOV R3, A
+		MOV B, R0
+		MUL AB
+		ADD A, #32
+		SUBB A, R1
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+	
+	FKEF:
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;MOV A, #25 ;INPUT DAN OUTPUT
+		ACALL INPUT_KEYPAD
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+
+	RKEF:
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;RE TO F
+		;9/4*TR + 32
+		CLR A
+		MOV A, #9
+		MOV B, #4
+		DIV AB
+		MOV B, R2
+		INC A
+		MOV R3, A
+		ACALL INPUT_KEYPAD
+		MOV B, R3
+		MUL AB
+		ADD A, #32
+		ADD A, R2
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	NKEF:
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A, #60
+		MOV B, #11
+		DIV AB
+		INC A
+		MOV R2, A
+		MOV R0, B
+;		MOV B, #30 ;INPUTNYA
+		ACALL INPUT_KEYPAD
+		MOV R3, A
+		MOV B, A
+		MOV A, R2
+		MUL AB
+		ADD A, #32
+		SUBB A, R0
+		MOV R4, A
+		MOV A, #60
+		MOV B, #11
+		DIV AB
+		MOV R0, B
+		MOV B, R3 ;INPUTNYA
+		MUL AB
+		ADD A, #32
+		ADD A, R0
+		MOV R1, A
+		MOV B, A
+		MOV A, R4
+		SUBB A, B
+		MOV B, #2
+		DIV AB
+		SUBB A, B
+		ADD A, R1
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+
+	CKER:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;CEL TO RE
+		; 4/5 * TC
+		CLR A
+		MOV A, #4
+		MOV B, #5
+		DIV AB
+		INC A
+		MOV R2, A
+;		MOV B, #25 ;INPUTNYA
+		ACALL INPUT_KEYPAD
+		MOV B, A
+		MOV A, R2
+		MUL AB
+		SUBB A, #4
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+	
+	FKER:
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;FARENHEIT TO RE
+		;4/9*(TF-32)
+		
+		CLR A
+		ACALL INPUT_KEYPAD
+		SUBB A, #32
+		MOV B, #2
+		DIV AB
+		SUBB A, B
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+
+	RKER:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;MOV A, #25 ;INPUT DAN OUTPUT
+		ACALL INPUT_KEYPAD
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	NKER:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A, #80
+		MOV B, #33
+		DIV AB
+		MOV R3, A
+		MOV R2, B
+		ACALL INPUT_KEYPAD
+		MOV B, A
+		MOV A, R3
+		MUL AB
+		ADD A, R2
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+
+	CKEN:
+		MOV A,#'C'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;CTON TC * 33/100
+		ACALL INPUT_KEYPAD
+		MOV B, #3
+		DIV AB
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	FKEN:
+		MOV A,#'F'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV R2, #32
+;		MOV B, #25
+		ACALL INPUT_KEYPAD
+		MOV B, A
+		MOV A, R2
+		SUBB A, B
+		MOV B, #6
+		DIV AB
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+		
+	RKEN:
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		ACALL INPUT_KEYPAD
+		MOV B, #2
+		MUL AB
+		MOV B, #5
+		DIV AB
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+	NKEN:
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#'N'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		;MOV A, #25 ;INPUT DAN OUTPUT
+		ACALL INPUT_KEYPAD
+		ACALL PRINT_KE_LCD
+		LJMP INPUT_ABCD
+
+CLEAR_LCD:
+
+	MOV A,#38H
+	ACALL COMNWRT
+	
+	MOV A,#0EH
+	ACALL COMNWRT
+	
+	MOV A,#01H
+	ACALL COMNWRT
+	
+	MOV A,#06H
+	ACALL COMNWRT
+	
+	MOV A,#80H
+	ACALL COMNWRT
+
+	RET
+
+	
+COMNWRT: 
+	ACALL READY
+	MOV P1,A
+	CLR P2.0
+	CLR P2.1
+	SETB P2.2
+	CLR P2.2
+	RET 
+DATAWRT: 
+	ACALL READY
+	MOV P1,A 
+	SETB P2.0
+	CLR P2.1
+	SETB P2.2
+	CLR P2.2
+	RET
+	
+READY: 
+	SETB P1.7
+	CLR P2.0
+	SETB P2.1
+
+;;;BACK: 
+	SETB P2.2
+	CLR P2.2
+	JB P1.7,BACK
+	RET
+
+PRINT_KE_LCD:
+	MOV B, #10
+	DIV AB
+	ADD A, #30H
+	ACALL DATAWRT
+	MOV A, B
+	ADD A, #30H
+	ACALL DATAWRT
+	ACALL TIMER_DELAY
+	ACALL CLEAR_LCD
+	RET
+
+PILIH_C:
+;implementasi LED MATRIX Layaknya SEVEN SEGMENT 
+	j: acall off
+	sjmp  zero 
+	acall off
+	acall delay
+	acall off
+	acall delay
+	jmp j
+	off:
+	mov p0,#0ffh
+	mov p1,#00ffh
+	ret 
+	delay:
+	mov r2,#05h
+	l:djnz r2,l
+	ret 
+	
+	zero:
+	mov p1, #11110000b
+	mov p0, #11011101b
+	mov p1, #11110110b
+	mov p0, #11100001b
+	acall off
+	acall delay
+	zero1:
+	mov  p1, #00001111b
+	mov  p0, #11011101b
+	mov  p1, #01101111b
+	mov p0, #11100001b
+	acall off
+	acall delay
+	one:
+	mov  p1,#11110111b
+	mov  p0,#11000001b
+	acall off
+	acall delay
+	one1:
+	mov  p1,#01111111b
+	mov  p0,#11000001b
+	acall off
+	acall delay
+	dua:
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11111110b
+	mov p0,#11101111b
+	mov p0,#11011111b
+	mov p1,#11110111b
+	mov p0,#11111011b
+	acall off
+	acall delay
+	dua1:
+	mov p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#11101111b
+	mov p0,#11101111b
+	mov p0,#11011111b
+	mov p1,#01111111b
+	mov p0,#11111011b
+	acall off
+	acall delay 
+	tiga:  ;-- 3 horizontal dan satu vertikal
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11110111b
+	mov p0,#11101011b
+	acall off
+	acall delay
+	tiga2:
+	mov  p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#01111111b
+	mov p0,#11101011b
+	acall off
+	acall delay
+	
+	empat:  ;-- dua vertikal satu horizontal
+	mov  p1,#11110000b
+	mov  p0,#11110111b
+	mov p1,#11111110b
+	mov p0,#11110001b
+	mov p1,#11110111b
+	mov p0,#11000001b
+	acall off
+	acall delay 
+	empat1:
+	mov  p1,#00001111b
+	mov  p0,#11110111b
+	mov p1,#11101111b
+	mov p0,#11110001b
+	mov p1,#01111111b
+	mov p0,#11000001b
+	acall off
+	acall delay 
+	lima: ;-- tiga horizontal dan dua vertikal 
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11111110b
+	mov p0,#11111011b
+	mov p0,#11011111b
+	mov p1,#11110111b
+	mov p0,#11101111b
+	acall off
+	acall delay
+	lima1:
+	mov p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#11101111b
+	mov p0,#11111011b
+	mov p0,#11011111b
+	mov p1,#01111111b
+	mov p0,#11101111b
+	acall off
+	acall delay
+	enam: ;-- 3horizontal dan 3vertikal
+	mov p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#11101111b
+	mov p0,#11101011b
+	mov p0,#11011111b
+	mov p1,#01111111b
+	mov p0,#11101111b
+	acall off
+	acall delay
+	enam1:
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11111110b
+	mov p0,#11101011b
+	mov p0,#11011111b
+	mov p1,#11110111b
+	mov p0,#11101111b
+	acall off
+	acall delay
+	tujuh: ;--2horizontal dan 1vertikal
+	mov  p1,#11110111b
+	mov  p0,#11000001b
+	mov  p0,#11111101b
+	mov  p1,#11110000b
+	acall off
+	acall delay
+	tujuh1: 
+	mov  p1,#01111111b
+	mov  p0,#11000001b
+	mov p0,#11111101b
+	mov  p1,#00001111b
+	acall off
+	acall delay
+	delapan: ;--3horizontal dan dua vertikal
+	mov p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#11101111b
+	mov p0,#11101011b
+	mov p0,#11011111b
+	mov p1,#01111111b
+	mov p0,#11101011b
+	acall off
+	acall delay
+	delapan1: 
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11111110b
+	mov p0,#11101011b
+	mov p0,#11011111b
+	mov p1,#11110111b
+	mov p0,#11101011b
+	acall off 
+	acall delay
+	sembilan: ;--3horizontal dan dua vertikal
+	mov p1,#11110000b
+	mov  p0,#11010101b
+	mov p1,#11111110b
+	mov p0,#11111011b
+	mov p0,#11011111b
+	mov p1,#11110111b
+	mov p0,#11101011b
+	acall off 
+	acall delay
+	sembilan1:
+	mov p1,#00001111b
+	mov  p0,#11010101b
+	mov p1,#11101111b
+	mov p0,#11111011b
+	mov p0,#11011111b
+	mov p1,#01111111b
+	mov p0,#11101011b
+	acall off
+	acall delay
+
+LJMP PILIH_B
+
+
+PILIH_D:
+		MOV A,#'T'
+		ACALL DATAWRT
+		MOV A,#'E'
+		ACALL DATAWRT
+		MOV A,#'R'
+		ACALL DATAWRT
+		MOV A,#'I'
+		ACALL DATAWRT
+		MOV A,#'M'
+		ACALL DATAWRT
+		MOV A,#'A'
+		ACALL DATAWRT
+		MOV A,#'K'
+		ACALL DATAWRT
+		MOV A,#'A'
+		ACALL DATAWRT
+		MOV A,#'S'
+		ACALL DATAWRT
+		MOV A,#'I'
+		ACALL DATAWRT
+		MOV A,#'H'
+		ACALL DATAWRT
+		MOV A,#' '
+		ACALL DATAWRT
+		MOV A,#':'
+		ACALL DATAWRT
+		MOV A,#')'
+		ACALL DATAWRT
+
+;----------------------------------------------------------------------.
+;                  SUBRUTIN DELAY DAN TIMER                            |
+;----------------------------------------------------------------------'
+
+SUBRUTIN_DELAY:
+
+	MOV R1, #COUNT		;COUNT NILAINYA 60
+AGAIN:
+	DJNZ R1, AGAIN
+
+	RET
+
+
+TIMER_DELAY:
+	MOV TMOD,#00000001B
+	MOV TH0, #0FFH
+	MOV TL0, #0CFH
+	SETB TR0
+HERE: 
+	JNB TF0, HERE
+	CLR TR0
+	CLR TF0
+	RET
+
+; HALT PROGRAM
+
+HALT:
+		SJMP HALT
+ 
+
